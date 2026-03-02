@@ -1,0 +1,156 @@
+/**
+ * Firestore Security Rules
+ * 
+ * These rules ensure:
+ * - Only authenticated users can access data
+ * - Students can only access their own data
+ * - Questions are read-only for students
+ * - Exam results can only be written once
+ * - Activity logs can only be created, not modified
+ */
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ============================================
+    // HELPER FUNCTIONS
+    // ============================================
+    
+    // Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Check if user owns this document
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Check if this is a new document (for write-once logic)
+    function isNewDocument() {
+      return resource == null;
+    }
+    
+    // Get current timestamp
+    function currentTime() {
+      return request.time;
+    }
+    
+    // ============================================
+    // USERS COLLECTION
+    // ============================================
+    match /users/{userId} {
+      // Users can read their own data
+      allow read: if isOwner(userId);
+      
+      // Users can create and update their own data
+      allow create, update: if isOwner(userId);
+      
+      // Prevent deletion
+      allow delete: if false;
+    }
+    
+    // ============================================
+    // STUDENTS COLLECTION  
+    // ============================================
+    match /students/{rollNumber} {
+      // Authenticated users can read student data
+      allow read: if isAuthenticated();
+      
+      // Only the owner can create their student record
+      allow create: if isAuthenticated() 
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.rollNumber == rollNumber
+        && request.resource.data.fullName is string
+        && request.resource.data.fullName.size() >= 2;
+      
+      // Only owner can update, and only certain fields
+      allow update: if isAuthenticated()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == resource.data.userId  // Can't change userId
+        && request.resource.data.rollNumber == resource.data.rollNumber;  // Can't change rollNumber
+      
+      // Prevent deletion
+      allow delete: if false;
+    }
+    
+    // ============================================
+    // QUESTIONS COLLECTION (Read-Only for students)
+    // ============================================
+    match /questions/{questionId} {
+      // Only authenticated users can read questions
+      allow read: if isAuthenticated();
+      
+      // Students cannot create, update, or delete questions
+      // Only admin (via Firebase Console or Admin SDK) can manage questions
+      allow create, update, delete: if false;
+    }
+    
+    // ============================================
+    // EXAM SESSIONS COLLECTION
+    // ============================================
+    match /examSessions/{sessionId} {
+      // Users can read their own exam sessions
+      allow read: if isAuthenticated() 
+        && (resource == null || resource.data.userId == request.auth.uid);
+      
+      // Users can create their own exam sessions
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.status == 'in-progress';
+      
+      // Users can update their own sessions (for answer submission)
+      // But cannot change certain fields
+      allow update: if isAuthenticated()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == resource.data.userId  // Can't change userId
+        && request.resource.data.rollNumber == resource.data.rollNumber  // Can't change rollNumber
+        && request.resource.data.sessionId == resource.data.sessionId;  // Can't change sessionId
+      
+      // Prevent deletion
+      allow delete: if false;
+    }
+    
+    // ============================================
+    // EXAM RESULTS COLLECTION (Write-Once)
+    // ============================================
+    match /examResults/{resultId} {
+      // Users can read their own results
+      allow read: if isAuthenticated() 
+        && (resource == null || resource.data.userId == request.auth.uid);
+      
+      // Users can create their own results (write-once)
+      // Only if document doesn't already exist
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid
+        && isNewDocument();
+      
+      // Results cannot be updated or deleted after creation
+      allow update, delete: if false;
+    }
+    
+    // ============================================
+    // ACTIVITY LOGS COLLECTION (Create-Only)
+    // ============================================
+    match /activityLogs/{logId} {
+      // Admins can read all logs (via Admin SDK)
+      // Regular users cannot read logs
+      allow read: if false;
+      
+      // Users can create activity logs
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid;
+      
+      // Logs cannot be updated or deleted
+      allow update, delete: if false;
+    }
+    
+    // ============================================
+    // DEFAULT DENY ALL
+    // ============================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
