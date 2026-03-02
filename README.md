@@ -333,9 +333,16 @@ Contributions are welcome! Feel free to open an issue or submit a pull request.
 This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
 
 ---
+## 🌟 Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=manis-sharma/hotel-review-site&type=date&legend=top-left)](https://www.star-history.com/#manis-sharma/hotel-review-site&Date)
+---
+
+
 
 <div align="center">
 
-**Built with ❤️ for secure online examinations**
+**Built with ❤️ for secure online examinations by Manish Sharma**
+**⭐ If you found this project helpful, please give it a star!**
 
 </div>
