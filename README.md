@@ -335,7 +335,7 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 ---
 ## 🌟 Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=manis-sharma/hotel-review-site&type=date&legend=top-left)](https://www.star-history.com/#manis-sharma/hotel-review-site&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=manis-sharma/Secure-Online-Exam-System&type=date&legend=top-left)](https://www.star-history.com/#manis-sharma/Secure-Online-Exam-System&Date)
 ---
 
 
